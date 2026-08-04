@@ -1,0 +1,6 @@
+{
+  "name": "Lean Bulk — Beginner Muscle Gain",
+  "targets": { "calories": 3050, "protein": 130, "fat": 90, "carbs": 425 },
+  "hydrationMl": 2500,
+  "meals": ["Breakfast", "Lunch", "Dinner", "Snack 1", "Snack 2"]
+}

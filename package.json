@@ -1,0 +1,26 @@
+{
+  "name": "gymtrack",
+  "version": "1.0.0",
+  "description": "Gym training and diet tracker",
+  "main": "src/main.js",
+  "author": "Prudhvi",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --linux AppImage"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.prudhvi.gymtrack",
+    "productName": "GymTrack",
+    "directories": { "output": "release" },
+    "files": ["src/**/*", "package.json"],
+    "linux": {
+      "target": ["AppImage"],
+      "category": "Utility",
+      "icon": "src/assets/icon.png"
+    }
+  }
+}

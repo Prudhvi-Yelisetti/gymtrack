@@ -1,0 +1,36 @@
+{
+  "name": "Push / Pull / Legs — Beginner Muscle Gain",
+  "rotation": ["Push", "Pull", "Legs"],
+  "days": {
+    "Push": {
+      "label": "Push (Chest, Shoulders, Triceps)",
+      "exercises": [
+        { "name": "Bench Press", "sets": 3, "repsMin": 8, "repsMax": 10, "rpe": "6-7" },
+        { "name": "Overhead Press", "sets": 3, "repsMin": 8, "repsMax": 10, "rpe": "6-7" },
+        { "name": "Incline Dumbbell Press", "sets": 2, "repsMin": 10, "repsMax": 12, "rpe": "6-7" },
+        { "name": "Lateral Raise", "sets": 2, "repsMin": 12, "repsMax": 15, "rpe": "6-7" },
+        { "name": "Triceps Pushdown", "sets": 2, "repsMin": 12, "repsMax": 15, "rpe": "6-7" }
+      ]
+    },
+    "Pull": {
+      "label": "Pull (Back, Biceps)",
+      "exercises": [
+        { "name": "Barbell Row", "sets": 3, "repsMin": 8, "repsMax": 10, "rpe": "6-7" },
+        { "name": "Lat Pulldown", "sets": 3, "repsMin": 10, "repsMax": 12, "rpe": "6-7" },
+        { "name": "Seated Cable Row", "sets": 2, "repsMin": 10, "repsMax": 12, "rpe": "6-7" },
+        { "name": "Face Pull", "sets": 2, "repsMin": 15, "repsMax": 15, "rpe": "6-7" },
+        { "name": "Bicep Curl", "sets": 2, "repsMin": 12, "repsMax": 15, "rpe": "6-7" }
+      ]
+    },
+    "Legs": {
+      "label": "Legs (Quads, Hamstrings, Glutes, Calves)",
+      "exercises": [
+        { "name": "Back Squat", "sets": 3, "repsMin": 8, "repsMax": 10, "rpe": "6-7" },
+        { "name": "Romanian Deadlift", "sets": 3, "repsMin": 8, "repsMax": 10, "rpe": "6-7" },
+        { "name": "Leg Press", "sets": 2, "repsMin": 10, "repsMax": 12, "rpe": "6-7" },
+        { "name": "Leg Curl", "sets": 2, "repsMin": 12, "repsMax": 15, "rpe": "6-7" },
+        { "name": "Calf Raise", "sets": 3, "repsMin": 12, "repsMax": 15, "rpe": "6-7" }
+      ]
+    }
+  }
+}

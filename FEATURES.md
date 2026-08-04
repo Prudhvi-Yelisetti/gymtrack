@@ -11,6 +11,12 @@ in `src/renderer/app.js`.
   simple recovery-day card is shown instead and nothing is logged.
 - Each exercise renders as a block (`renderExerciseBlock`) with:
   - a "last time" hint pulled from the most recent prior session
+  - a **progression suggestion** (`getProgressionSuggestion`) — plain
+    double-progression logic: if every set at the previous session's
+    top working weight hit the top of the rep range, it suggests
+    +2.5kg today (highlighted); otherwise it suggests staying at that
+    weight and pushing reps toward the top of the range first. Needs
+    at least one previous weighted session; says nothing otherwise.
   - one row per set (`renderSetRow`): a done checkbox, reps input,
     weight input; checking "done" with no reps entered auto-fills the
     plan's `repsMax`; reps below `repsMin` get an inline "under target"
@@ -123,8 +129,10 @@ pieces, roughly in priority order:
 1. ~~**Historical workout browsing**~~ — done, see History above.
 2. **Food database** — all diet macros are hand-typed per meal; no
    food search, barcode scan, or reusable/saved food items.
-3. **Progressive-overload suggestions** — "last time" is shown per
-   exercise, but nothing recommends a next-session weight/rep bump.
+3. ~~**Progressive-overload suggestions**~~ — done, see the Today
+   section above. Note: it's a simple fixed-2.5kg double-progression
+   heuristic, not per-exercise-configurable increments or anything
+   RPE-autoregulated — a reasonable v1, not the ceiling.
 4. **Multi-program support** — one `trainingPlan` only; no saved
    programs to switch between, no mesocycles/deload weeks.
 5. Editing past workout logs (History is currently read-only).

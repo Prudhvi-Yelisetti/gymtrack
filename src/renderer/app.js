@@ -130,6 +130,30 @@ function getPreviousSession(exName, beforeDate) {
   return null;
 }
 
+// Plain double-progression heuristic: once every logged set from the last
+// session hit the top of the rep range, suggest adding weight next time;
+// otherwise suggest staying at the same weight and pushing reps up toward
+// the top of the range. Weight increments are fixed at 2.5kg (the
+// smallest standard plate this app's calculator uses) since there's no
+// per-exercise increment configured anywhere yet — a coarser but simple
+// default. Returns null when there isn't enough data to say anything
+// (no previous session, or no weight logged on it).
+function getProgressionSuggestion(exDef, prev) {
+  if (!prev || prev.sets.length === 0) return null;
+  const weighted = prev.sets.filter(s => s.weight != null);
+  if (weighted.length === 0) return null;
+
+  const topWeight = Math.max(...weighted.map(s => s.weight));
+  const topSets = weighted.filter(s => s.weight === topWeight);
+  const allHitMax = topSets.every(s => (s.reps || 0) >= exDef.repsMax);
+  const avgReps = Math.round(topSets.reduce((a, s) => a + (s.reps || 0), 0) / topSets.length);
+
+  if (allHitMax) {
+    return { text: `Hit ${exDef.repsMax} reps at ${topWeight}kg last time — try ${topWeight + 2.5}kg today.`, ready: true };
+  }
+  return { text: `${topWeight}kg last time (avg ${avgReps} reps) — same weight, aim for ${exDef.repsMax} reps before adding load.`, ready: false };
+}
+
 // Standard plate set in kg. Greedy fill from largest to smallest.
 function calculatePlates(target, barWeight) {
   const PLATES = [25, 20, 15, 10, 5, 2.5, 1.25];
@@ -453,6 +477,7 @@ function renderExerciseBlock(date, exDef, exLog, dayName) {
   const prevText = prev
     ? `Last time (${prev.date.slice(5)}): ` + prev.sets.map(s => `${s.weight ?? '–'}kg×${s.reps ?? '–'}`).join(', ')
     : 'No previous session logged yet';
+  const suggestion = getProgressionSuggestion(exDef, prev);
   block.innerHTML = `
     <div class="ex-title-row">
       <span class="name">${exDef.name}</span>
@@ -463,6 +488,7 @@ function renderExerciseBlock(date, exDef, exLog, dayName) {
       </div>
     </div>
     <div class="prev-session">${prevText}</div>
+    ${suggestion ? `<div class="progression-hint ${suggestion.ready ? 'ready' : ''}">↑ ${suggestion.text}</div>` : ''}
     <div class="sets-holder"></div>
     <div class="plate-calc" id="plates-${cssSafe(exDef.name)}" style="display:none;"></div>
     <div class="timer-display" id="timer-${cssSafe(exDef.name)}" style="display:${timers[exDef.name] ? 'block' : 'none'};"></div>

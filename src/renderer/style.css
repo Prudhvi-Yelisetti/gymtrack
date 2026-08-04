@@ -457,6 +457,18 @@ button.primary, button.ghost, .timer-btn, .rest-day-picker button { border-radiu
   padding: 0 0 12px;
 }
 
+/* ---------- Progressive-overload hint ----------
+   Quiet by default (an observation), brighter when the previous
+   session fully hit the top of the rep range (an actionable nudge
+   to add weight). */
+.progression-hint {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--chalk-dim);
+  padding: 0 0 12px;
+}
+.progression-hint.ready { color: var(--plate-yellow); }
+
 /* ---------- Plate calculator ---------- */
 .plate-calc {
   border-top: 1px solid var(--hairline);

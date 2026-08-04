@@ -4,6 +4,7 @@ let currentPage = 'today';
 let trainingPlanEditMode = false; // Training Plan opens read-only by default
                                     // so nothing gets bumped by accident.
 let timers = {}; // exerciseName -> {remaining, interval}
+let foodDatabase = []; // bundled Indian foods reference — see indian-food-database.json
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
 
@@ -27,6 +28,7 @@ function defaultState(trainingPlan, dietPlan) {
 
 async function init() {
   const saved = await window.gymtrack.loadState();
+  foodDatabase = await fetch('indian-food-database.json').then(r => r.json()).catch(() => []);
   if (saved) {
     state = saved;
     if (state.restDay === undefined) state.restDay = 0; // migrate old saves
@@ -41,6 +43,15 @@ async function init() {
     }
     if (!state.logs.measurements) state.logs.measurements = [];
     if (state.referenceBodyweightKg === undefined) state.referenceBodyweightKg = null;
+    // Older saves have meals as flat {calories,protein,fat,carbs} numbers
+    // only. Give every meal an `items` array (itemized food-database
+    // entries) without touching those existing manual numbers — they
+    // keep working as a separate "other/manual" entry that adds on top.
+    Object.values(state.logs.diet || {}).forEach(dayLog => {
+      Object.values(dayLog.meals || {}).forEach(m => {
+        if (!m.items) m.items = [];
+      });
+    });
   } else {
     const [trainingPlan, dietPlan] = await Promise.all([
       fetch('default-training-plan.json').then(r => r.json()),
@@ -177,10 +188,23 @@ function calculatePlates(target, barWeight) {
 function ensureDietLog(date) {
   if (!state.logs.diet[date]) {
     const meals = {};
-    (state.dietPlan.meals || []).forEach(m => { meals[m] = { calories: 0, protein: 0, fat: 0, carbs: 0 }; });
+    (state.dietPlan.meals || []).forEach(m => { meals[m] = { calories: 0, protein: 0, fat: 0, carbs: 0, items: [] }; });
     state.logs.diet[date] = { meals, water: 0 };
   }
   return state.logs.diet[date];
+}
+
+// A meal's total macros = its manual/other numbers plus every food-database
+// item logged against it. Kept as a function (not stored) so it's always
+// derived fresh from whatever's currently in `m`.
+function mealTotals(m) {
+  const items = m.items || [];
+  return {
+    calories: (Number(m.calories) || 0) + items.reduce((a, i) => a + i.calories, 0),
+    protein: (Number(m.protein) || 0) + items.reduce((a, i) => a + i.protein, 0),
+    fat: (Number(m.fat) || 0) + items.reduce((a, i) => a + i.fat, 0),
+    carbs: (Number(m.carbs) || 0) + items.reduce((a, i) => a + i.carbs, 0)
+  };
 }
 
 function isDayFullyDone(log) {
@@ -903,10 +927,11 @@ function renderDiet(main) {
 
   const totals = { calories: 0, protein: 0, fat: 0, carbs: 0 };
   Object.values(log.meals).forEach(m => {
-    totals.calories += Number(m.calories) || 0;
-    totals.protein += Number(m.protein) || 0;
-    totals.fat += Number(m.fat) || 0;
-    totals.carbs += Number(m.carbs) || 0;
+    const t = mealTotals(m);
+    totals.calories += t.calories;
+    totals.protein += t.protein;
+    totals.fat += t.fat;
+    totals.carbs += t.carbs;
   });
 
   main.innerHTML = `
@@ -942,25 +967,87 @@ function renderDiet(main) {
     macroGrid.appendChild(div);
   });
 
+  // One shared datalist for every meal's food search, populated once.
+  if (!document.getElementById('food-db-list')) {
+    const dl = document.createElement('datalist');
+    dl.id = 'food-db-list';
+    dl.innerHTML = foodDatabase.map(f => `<option value="${f.name}">${f.unit}</option>`).join('');
+    document.body.appendChild(dl);
+  }
+
   const mealList = main.querySelector('#meal-list');
   Object.entries(log.meals).forEach(([mealName, m]) => {
-    const row = document.createElement('div');
-    row.className = 'meal-row';
-    row.innerHTML = `
-      <span class="name">${mealName}</span>
-      <label>kcal <input type="number" data-field="calories" value="${m.calories || ''}" min="0"></label>
-      <label>protein g <input type="number" data-field="protein" value="${m.protein || ''}" min="0"></label>
-      <label>fat g <input type="number" data-field="fat" value="${m.fat || ''}" min="0"></label>
-      <label>carbs g <input type="number" data-field="carbs" value="${m.carbs || ''}" min="0"></label>
+    const mt = mealTotals(m);
+    const block = document.createElement('div');
+    block.className = 'meal-block';
+    block.innerHTML = `
+      <div class="meal-block-head">
+        <span class="name">${mealName}</span>
+        <span class="meal-subtotal">${Math.round(mt.calories)} kcal · ${Math.round(mt.protein)}p / ${Math.round(mt.fat)}f / ${Math.round(mt.carbs)}c</span>
+      </div>
+      <div class="food-items" id="food-items-${cssSafe(mealName)}"></div>
+      <div class="food-search-row">
+        <input type="text" list="food-db-list" placeholder="Search Indian foods…" data-role="food-search">
+        <input type="number" min="0.25" step="0.25" value="1" data-role="food-qty" title="servings">
+        <button class="ghost" data-role="food-add">+ Add</button>
+      </div>
+      <div class="meal-row manual-row">
+        <span class="name">Other (manual)</span>
+        <label>kcal <input type="number" data-field="calories" value="${m.calories || ''}" min="0"></label>
+        <label>protein g <input type="number" data-field="protein" value="${m.protein || ''}" min="0"></label>
+        <label>fat g <input type="number" data-field="fat" value="${m.fat || ''}" min="0"></label>
+        <label>carbs g <input type="number" data-field="carbs" value="${m.carbs || ''}" min="0"></label>
+      </div>
     `;
-    row.querySelectorAll('input').forEach(inp => {
+
+    const itemsHolder = block.querySelector('.food-items');
+    (m.items || []).forEach((item, idx) => {
+      const row = document.createElement('div');
+      row.className = 'food-item-row';
+      row.innerHTML = `
+        <span class="fi-name">${item.name}</span>
+        <span class="fi-qty">${item.qty}× ${item.unit}</span>
+        <span class="fi-macros">${Math.round(item.calories)} kcal · ${Math.round(item.protein)}p / ${Math.round(item.fat)}f / ${Math.round(item.carbs)}c</span>
+        <button class="row-delete" data-role="remove-item" title="Remove">×</button>
+      `;
+      row.querySelector('[data-role="remove-item"]').addEventListener('click', async () => {
+        m.items.splice(idx, 1);
+        await persist();
+        renderDiet(main);
+      });
+      itemsHolder.appendChild(row);
+    });
+
+    block.querySelector('[data-role="food-add"]').addEventListener('click', async () => {
+      const searchInput = block.querySelector('[data-role="food-search"]');
+      const qtyInput = block.querySelector('[data-role="food-qty"]');
+      const query = searchInput.value.trim().toLowerCase();
+      const qty = parseFloat(qtyInput.value) || 1;
+      const food = foodDatabase.find(f => f.name.toLowerCase() === query);
+      if (!food) { toast('Pick a food from the list — type to search'); return; }
+      m.items = m.items || [];
+      m.items.push({
+        name: food.name,
+        unit: food.unit,
+        qty,
+        calories: Math.round(food.calories * qty * 10) / 10,
+        protein: Math.round(food.protein * qty * 10) / 10,
+        fat: Math.round(food.fat * qty * 10) / 10,
+        carbs: Math.round(food.carbs * qty * 10) / 10
+      });
+      await persist();
+      toast(`Added ${food.name}`);
+      renderDiet(main);
+    });
+
+    block.querySelectorAll('.manual-row input').forEach(inp => {
       inp.addEventListener('change', async () => {
         m[inp.dataset.field] = inp.value === '' ? 0 : parseFloat(inp.value);
         await persist();
         renderDiet(main);
       });
     });
-    mealList.appendChild(row);
+    mealList.appendChild(block);
   });
 
   const waterRow = main.querySelector('#water-row');

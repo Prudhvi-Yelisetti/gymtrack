@@ -60,9 +60,27 @@ in `src/renderer/app.js`.
 ## Diet (`renderDiet`)
 
 - Macro bars (calories/protein/fat/carbs) compare the day's logged
-  totals against `dietPlan.targets`.
-- One row per meal (from `dietPlan.meals`) with kcal/protein/fat/carbs
-  inputs; totals recompute on any change.
+  totals against `dietPlan.targets`. Totals are derived per meal via
+  `mealTotals(m)` — manual "other" numbers plus every itemized food
+  entry — summed across all meals.
+- One block per meal (from `dietPlan.meals`), each with:
+  - **Food search** — a text input (backed by a shared `<datalist>`
+    populated from `indian-food-database.json`, ~48 common Indian
+    foods across grains/breads, dals & legumes, vegetable curries,
+    non-veg, dairy, snacks, fruits, and beverages) plus a servings
+    multiplier and an Add button. Adding a food computes
+    `qty × {calories,protein,fat,carbs}` from the database entry and
+    appends it to that meal's `items` list; each logged item shows
+    with a remove (×) button.
+  - **Other (manual)** — the original four number inputs
+    (kcal/protein/fat/carbs), kept as-is for anything not in the
+    database (homemade dishes, restaurant food, etc.); these add on
+    top of the itemized total rather than replacing it.
+  - A per-meal subtotal line showing the combined total.
+- The food database is a static bundled reference (loaded once at
+  startup into an in-memory `foodDatabase` array), not part of
+  persisted `state` — only the itemized entries a user actually logs
+  (name/unit/qty/computed macros) get saved into `logs.diet`.
 - Hydration: 8 clickable glass icons; clicking glass *n* sets water
   count to *n* (or back to *n-1* if already at *n*, so it's toggle-able).
 
@@ -127,8 +145,11 @@ Compared to a "professional" gym + diet tracker, the biggest missing
 pieces, roughly in priority order:
 
 1. ~~**Historical workout browsing**~~ — done, see History above.
-2. **Food database** — all diet macros are hand-typed per meal; no
-   food search, barcode scan, or reusable/saved food items.
+2. ~~**Food database**~~ — done, see Diet above. Note: it's a small
+   bundled Indian-food reference (~48 items, hand-curated approximate
+   macros for common preparations), not a comprehensive/searchable-by-
+   barcode database — good enough to log a typical day fast, not a
+   substitute for a real nutrition database if precision matters.
 3. ~~**Progressive-overload suggestions**~~ — done, see the Today
    section above. Note: it's a simple fixed-2.5kg double-progression
    heuristic, not per-exercise-configurable increments or anything

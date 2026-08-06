@@ -10,6 +10,8 @@ const todayKey = () => new Date().toISOString().slice(0, 10);
 
 function defaultState(trainingPlan, dietPlan) {
   return {
+    trainingPrograms: [trainingPlan], // saved programs; trainingPlan below always aliases the active one
+    activeProgramIndex: 0,
     trainingPlan,
     dietPlan,
     rotationIndex: 0,
@@ -43,6 +45,12 @@ async function init() {
     }
     if (!state.logs.measurements) state.logs.measurements = [];
     if (state.referenceBodyweightKg === undefined) state.referenceBodyweightKg = null;
+    if (!state.trainingPrograms) {
+      // Older saves only ever had one plan — wrap it as the sole program.
+      // Same object reference, so state.trainingPlan stays a valid alias.
+      state.trainingPrograms = [state.trainingPlan];
+      state.activeProgramIndex = 0;
+    }
     // Older saves have meals as flat {calories,protein,fat,carbs} numbers
     // only. Give every meal an `items` array (itemized food-database
     // entries) without touching those existing manual numbers — they
@@ -85,6 +93,16 @@ function toast(msg) {
 function getRotationDay() {
   const rotation = state.trainingPlan.rotation;
   return rotation[state.rotationIndex % rotation.length];
+}
+
+// Switch the active training program. Resets rotationIndex to 0 since a
+// different program's rotation array (day names, length) may not line up
+// with wherever the previous program's pointer was.
+function switchProgram(idx) {
+  if (idx < 0 || idx >= state.trainingPrograms.length) return;
+  state.activeProgramIndex = idx;
+  state.trainingPlan = state.trainingPrograms[idx];
+  state.rotationIndex = 0;
 }
 
 function emptySet() { return { done: false, reps: null, weight: null, short: false, doneAt: null }; }
@@ -1382,10 +1400,26 @@ function renderSettings(main) {
     </div>
 
     <div class="settings-block">
-      <h4>Import Training Split</h4>
-      <p>Replace the current training plan with a JSON file (same shape as the bundled default). Your logs are kept separately and won't be lost.</p>
+      <h4>Training Programs</h4>
+      <p>Switch between saved programs, or import a new one from a JSON file (same shape as the bundled default) without losing the ones you already have. Workout logs are kept separately either way and are never affected by switching.</p>
+      <div class="program-list" id="program-list">
+        ${state.trainingPrograms.map((p, i) => `
+          <div class="program-row ${i === state.activeProgramIndex ? 'active' : ''}">
+            <div class="program-info">
+              <span class="program-name">${p.name}</span>
+              <span class="program-meta">${p.rotation.join(' → ')}</span>
+            </div>
+            ${i === state.activeProgramIndex
+              ? `<span class="tag active-tag">Active</span>`
+              : `<button class="ghost" data-role="switch-program" data-idx="${i}">Switch</button>`}
+            ${state.trainingPrograms.length > 1 && i !== state.activeProgramIndex
+              ? `<button class="row-delete" data-role="delete-program" data-idx="${i}" title="Delete">×</button>`
+              : ''}
+          </div>
+        `).join('')}
+      </div>
       <div class="settings-actions">
-        <button class="ghost" id="import-training">Import Training JSON</button>
+        <button class="ghost" id="import-training">Import as New Program</button>
       </div>
     </div>
 
@@ -1457,14 +1491,36 @@ function renderSettings(main) {
     toast('Reference bodyweight saved');
   });
 
+  main.querySelectorAll('[data-role="switch-program"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      switchProgram(parseInt(btn.dataset.idx, 10));
+      await persist();
+      toast('Switched to ' + state.trainingPlan.name);
+      render();
+    });
+  });
+
+  main.querySelectorAll('[data-role="delete-program"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const idx = parseInt(btn.dataset.idx, 10);
+      const p = state.trainingPrograms[idx];
+      if (!confirm(`Delete "${p.name}"? This only removes the plan — any workout logs already recorded under it are kept.`)) return;
+      state.trainingPrograms.splice(idx, 1);
+      if (idx < state.activeProgramIndex) state.activeProgramIndex--; // keep pointing at the same program
+      await persist();
+      toast('Program deleted');
+      render();
+    });
+  });
+
   main.querySelector('#import-training').addEventListener('click', async () => {
     const data = await window.gymtrack.importJSON();
     if (!data) return;
     if (data.error || !data.days || !data.rotation) { toast('Invalid training plan file'); return; }
-    state.trainingPlan = data;
-    state.rotationIndex = 0;
+    state.trainingPrograms.push(data);
+    switchProgram(state.trainingPrograms.length - 1);
     await persist();
-    toast('Training plan imported');
+    toast('Program imported and switched to');
     render();
   });
 

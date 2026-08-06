@@ -38,21 +38,38 @@ Defined by `defaultState()` in `app.js`:
 
 ```js
 {
-  trainingPlan,          // from default-training-plan.json or an import
-  dietPlan,               // from default-diet-plan.json or an import
-  rotationIndex,          // pointer into trainingPlan.rotation
+  trainingPrograms,      // [{name, rotation, days}, ...] — all saved programs
+  activeProgramIndex,     // pointer into trainingPrograms
+  trainingPlan,            // ALIAS: same object as trainingPrograms[activeProgramIndex],
+                            // kept for convenience — most of app.js reads this directly
+                            // rather than dereferencing the array every time
+  dietPlan,                // from default-diet-plan.json or an import
+  foodDatabase,             // NOT part of state — static reference loaded at startup
+                            // from indian-food-database.json into a module-level var
+  rotationIndex,           // pointer into trainingPlan.rotation
   restDay,                 // 0=Sunday..6=Saturday
   restTimerSeconds,
   trackingStartDate,       // streak never counts before this date
   referenceBodyweightKg,   // fallback for calorie estimate
   logs: {
     workouts: {},          // date -> { day, note?, exercises: { name: { sets: [...] } } }
-    diet: {},               // date -> { meals: { mealName: {calories,protein,fat,carbs} }, water }
+    diet: {},               // date -> { meals: { mealName: {calories,protein,fat,carbs,items:[...]} }, water }
     bodyweight: [],         // [{date, kg}]
     measurements: []        // [{date, chest?, waist?, arms?, thighs?}]
   }
 }
 ```
+
+`state.trainingPlan` is deliberately kept as a live alias (same object
+reference) to `trainingPrograms[activeProgramIndex]` rather than a
+derived getter, so in-place edits from Training Plan's edit mode
+(`state.trainingPlan.days[day].exercises.push(...)`) mutate the array
+entry too, with no extra sync step. The only place that must be careful
+about this is `switchProgram(idx)`, which reassigns both
+`activeProgramIndex` and `trainingPlan` together — anywhere else that
+needs to *replace* a program wholesale should push a new entry onto
+`trainingPrograms` and call `switchProgram()` rather than assigning
+directly to `state.trainingPlan` (which would silently break the alias).
 
 `state` lives only in renderer memory (`let state = null;` at module
 scope) and is round-tripped to disk in full on every change — there is
@@ -104,10 +121,14 @@ changing anything nearby:
 
 ## Data import/export
 
-Training plans and diet plans can each be replaced wholesale via
-Settings by importing a JSON file matching the shape of
-`default-training-plan.json` / `default-diet-plan.json`. Full progress
-(all `logs`, plus rotation/rest-day/tracking-start) can be exported and
-re-imported as a backup; import validates the shape loosely (checks
-for `logs.workouts`/`logs.diet`/`logs.bodyweight`) and requires
+Training plans are additive: importing a JSON file matching the shape
+of `default-training-plan.json` pushes it onto `trainingPrograms` as a
+new program and switches to it (`switchProgram`) — it never overwrites
+an existing plan, so switching back to an older program is just a
+click in Settings → Training Programs. Diet plans are still replaced
+wholesale on import (there's only ever one active `dietPlan`, no
+multi-plan support there yet). Full progress (all `logs`, plus
+rotation/rest-day/tracking-start) can be exported and re-imported as a
+backup; import validates the shape loosely (checks for
+`logs.workouts`/`logs.diet`/`logs.bodyweight`) and requires
 confirmation since it overwrites current logs.

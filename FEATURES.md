@@ -108,9 +108,18 @@ in `src/renderer/app.js`.
 - **Reference bodyweight** — fallback used for the calorie estimate on
   Today before any real bodyweight entry exists; a logged bodyweight
   entry always takes precedence over this.
-- **Import Training Split / Import Diet Plan** — replace the current
-  plan wholesale from a JSON file shaped like the bundled defaults;
-  logs are untouched.
+- **Training Programs** — list of every saved program (`trainingPrograms`)
+  with the active one highlighted; **Switch** makes any other one active
+  (resets `rotationIndex` to 0, since a different program's rotation
+  may not line up with the old pointer), **Delete** removes a program
+  you're not currently on (workout logs already recorded under it are
+  kept — they're just history, not tied to the plan definition).
+  **Import as New Program** adds a JSON file (same shape as the bundled
+  default) as an additional program and switches to it — it never
+  overwrites an existing one.
+- **Import Diet Plan** — replace the current diet plan wholesale from a
+  JSON file shaped like the bundled default; logs are untouched. (Diet
+  plans don't have multi-program support yet — only training does.)
 - **Export All Data** — full state (plans + logs) to a JSON backup file
   via a native save dialog.
 - **Import Progress** — restore `logs` (+ rotation index, rest day,
@@ -154,8 +163,10 @@ pieces, roughly in priority order:
    section above. Note: it's a simple fixed-2.5kg double-progression
    heuristic, not per-exercise-configurable increments or anything
    RPE-autoregulated — a reasonable v1, not the ceiling.
-4. **Multi-program support** — one `trainingPlan` only; no saved
-   programs to switch between, no mesocycles/deload weeks.
+4. ~~**Multi-program support**~~ — done, see Settings → Training
+   Programs above. Note: switching/importing/deleting programs works;
+   mesocycles and deload-week scheduling within a program still don't
+   exist — this solves "have more than one plan," not periodization.
 5. Editing past workout logs (History is currently read-only).
 6. Historical diet trends (Diet only ever shows today; Progress has no
    calorie/macro trend chart the way bodyweight does).

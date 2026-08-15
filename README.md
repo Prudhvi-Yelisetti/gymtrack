@@ -70,9 +70,22 @@ sync — "backup" means exporting that JSON via Settings → Export All Data.
 
 ## Notes for future work
 
-- No `.git` repository was found in this project as of writing these
-  docs — consider initializing one.
 - No test suite exists.
 - `app.js` is a single large file with no module boundaries; splitting
   per-page render functions into separate files would help as the app
   grows.
+
+## Related project
+
+A native Android companion app exists at `~/Projects/gymtrack-android`
+— same local-first philosophy, shares the Indian food database and the
+training-plan JSON shape (so a program can be exported from one and
+imported into the other), but a different starting point: no bundled
+default plan, instead an onboarding questionnaire generates one. See
+that project's own `README.md` for its status — it's ahead of this
+desktop app on some fronts (rest timer, plate calculator, and
+progressive-overload hints all exist on both now; multi-program
+support and history exist on both; the Android app additionally has a
+day-add/rename/delete editor and an exercise-name search database that
+this desktop app doesn't have yet) and behind on others (no diet-plan/
+editable-meal-list concept, no heatmap/weekly-volume/PR-table views).

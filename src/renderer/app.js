@@ -986,10 +986,16 @@ function renderDiet(main) {
   });
 
   // One shared datalist for every meal's food search, populated once.
+  // Native <datalist> options are OS/browser-rendered and don't accept
+  // custom markup — plain text only, no <span>/CSS possible here — so
+  // this is the one spot in the app where the veg/non-veg mark has to
+  // be a plain character instead of a real styled dot (see food-item
+  // rows below for the CSS version, which is what actually ships once
+  // an item is selected/logged).
   if (!document.getElementById('food-db-list')) {
     const dl = document.createElement('datalist');
     dl.id = 'food-db-list';
-    dl.innerHTML = foodDatabase.map(f => `<option value="${f.name}">${f.unit}</option>`).join('');
+    dl.innerHTML = foodDatabase.map(f => `<option value="${f.name}">${f.veg ? '🟢' : '🟤'} ${f.unit}</option>`).join('');
     document.body.appendChild(dl);
   }
 
@@ -1022,8 +1028,17 @@ function renderDiet(main) {
     (m.items || []).forEach((item, idx) => {
       const row = document.createElement('div');
       row.className = 'food-item-row';
+      // Manual/"other" entries won't match anything in foodDatabase, so
+      // no dot renders for those — correct, since there's no veg data.
+      // Real styled dot (not emoji) since this row is app-owned markup;
+      // colors match the Android app's veg/non-veg tokens exactly
+      // (#2E7D32 / #8D4B2C) so the same feature looks the same on both.
+      const cataloged = foodDatabase.find(f => f.name === item.name);
+      const dot = cataloged
+        ? `<span class="veg-dot ${cataloged.veg ? 'veg' : 'nonveg'}" title="${cataloged.veg ? 'Veg' : 'Non-veg'}"></span> `
+        : '';
       row.innerHTML = `
-        <span class="fi-name">${item.name}</span>
+        <span class="fi-name">${dot}${item.name}</span>
         <span class="fi-qty">${item.qty}× ${item.unit}</span>
         <span class="fi-macros">${Math.round(item.calories)} kcal · ${Math.round(item.protein)}p / ${Math.round(item.fat)}f / ${Math.round(item.carbs)}c</span>
         <button class="row-delete" data-role="remove-item" title="Remove">×</button>

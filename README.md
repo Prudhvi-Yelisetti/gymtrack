@@ -17,10 +17,12 @@ stored on disk as a single JSON file — no accounts, no network calls.
   completion, estimated calories), with a click-through to full
   set-by-set detail and notes for that day. Read-only.
 - **Diet** — daily macro targets (calories/protein/fat/carbs), logged
-  per meal either by searching a bundled Indian food database (~48
-  common items — dals, breads, curries, snacks, etc. — with
-  quantity-scaled macros) or by typing manual/"other" totals for
-  anything not in it, plus an 8-glass hydration tracker.
+  per meal either by searching a bundled Indian food database (109
+  items across 12 categories — dals, breads, curries, rice &
+  biryani dishes, sweets, snacks, common fast food/global items
+  eaten in India, etc. — with quantity-scaled macros) or by typing
+  manual/"other" totals for anything not in it, plus an 8-glass
+  hydration tracker.
 - **Progress** — bodyweight log with a trend chart, per-exercise history
   chart, body measurements (chest/waist/arms/thighs), a 7-day volume
   view, a 28-day consistency heatmap, and a personal-records table.
